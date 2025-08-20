@@ -91,6 +91,17 @@ def main():
         print("Initializing claw...")
         lebai.init_claw()
         
+        print("Testing claw full range...")
+        # Test full opening
+        lebai.set_claw(50, 100)  # Low force, full open
+        time.sleep(2)
+        # Test full closing  
+        lebai.set_claw(50, 0)    # Low force, full close
+        time.sleep(2)
+        # Set to neutral position
+        lebai.set_claw(50, 50)   # Low force, half open
+        time.sleep(1)
+        
         print("Checking robot state...")
         robot_state = lebai.get_robot_state()
         print(f"Robot state: {robot_state}")
@@ -128,6 +139,25 @@ def main():
                 4*pi, # acceleration (rad/s2)
                 2*pi # velocity (rad/s)
             )
+            
+            # Control claw based on servo 6 position with HIGH SENSITIVITY
+            # Use only middle 50% of servo range for full claw range (very sensitive)
+            servo_normalized = (pos[5] + pi) / (2 * pi)  # Normalize to 0-1
+            
+            # Map only center 50% of servo (0.25 to 0.75) to full claw range (0-100)
+            servo_range = max(0.25, min(1, servo_normalized))  # Use only 25%-75% of servo range
+            claw_amplitude = int((1 - (servo_range - 0.25) / 0.5) * 100)  # Map to full 0-100 range
+            
+            claw_amplitude = max(0, min(100, claw_amplitude))  # Clamp to 0-100 range
+            
+            # Set claw: force=70 (moderate), amplitude=servo6_position
+            lebai.set_claw(100, claw_amplitude)  # (force, amplitude)
+            
+            # Get claw status for monitoring
+            claw_status = lebai.get_claw()
+            
+            # Debug output showing servo position, claw amplitude, and status
+            print(f"Servo6: {pos[5]:.2f}rad -> Claw: {claw_amplitude}% | Force: {claw_status.get('force', 0):.1f} | Hold: {claw_status.get('hold_on', False)}", end="\r")
 
     except Exception as e:
         print(f"Error occurred: {e}")
