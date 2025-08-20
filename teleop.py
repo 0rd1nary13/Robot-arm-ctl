@@ -14,12 +14,12 @@ ADDR_PRESENT_POSITION = 132
 PROTOCOL_VERSION = 2.0
 
 BAUDRATE = 1000000
-DEVICENAME = '/dev/cu.usbmodem1101'
+DEVICENAME = '/dev/cu.usbmodem101'
 
 TORQUE_ENABLE = 1
 TORQUE_DISABLE = 0
 
-DXL_IDS = [1, 2, 3, 4, 5, 6] 
+DXL_IDS = [1, 2, 3, 4, 5, 6]
 
 LEBAI_IP = "192.168.10.200"
 
@@ -74,8 +74,39 @@ def main():
         disable_torque(packetHandler, portHandler, dxl_id)
 
     try:
+        print("Starting Lebai system...")
         lebai.start_sys()
+        time.sleep(2)  # Wait for system to start
+        
+        print("Ending teach mode (if active)...")
+        try:
+            lebai.end_teach_mode()
+        except:
+            pass  # Ignore if not in teach mode
+        
+        print("Disabling joint limits for teleop...")
+        lebai.disable_joint_limits()
+        time.sleep(1)
+        
+        print("Initializing claw...")
         lebai.init_claw()
+        
+        print("Checking robot state...")
+        robot_state = lebai.get_robot_state()
+        print(f"Robot state: {robot_state}")
+        
+        if robot_state != "IDLE":
+            print(f"Warning: Robot state is {robot_state}, expected IDLE")
+        
+        print("Activating robot with initial position...")
+        # Move to a neutral position to activate the robot
+        initial_pos = [0, -pi/2, pi/2, -pi/2, pi/2, 0]  # Safe neutral position
+        lebai.movej(initial_pos, pi, pi/2)  # Low speed for safety
+        lebai.wait_move()
+        
+        print("Starting teleop control loop...")
+        print("Move the Dynamixel servos to control the robot arm!")
+        print("Press Ctrl+C to stop")
 
         while True:
             time.sleep(0.05)
@@ -98,11 +129,19 @@ def main():
                 2*pi # velocity (rad/s)
             )
 
+    except Exception as e:
+        print(f"Error occurred: {e}")
     finally:
+        print("Cleaning up...")
         for dxl_id in DXL_IDS:
             disable_torque(packetHandler, portHandler, dxl_id)
         portHandler.closePort()
-        lebai.stop()
+        
+        try:
+            lebai.stop_sys()
+        except:
+            print("Warning: Could not properly shutdown robot")
+        print("Cleanup complete.")
 
 if __name__ == "__main__":
     main()

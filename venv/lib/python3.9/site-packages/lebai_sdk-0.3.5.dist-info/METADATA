@@ -1,0 +1,14 @@
+Metadata-Version: 2.4
+Name: lebai_sdk
+Version: 0.3.5
+License-File: LICENSE
+Summary: lebai_sdk
+Author: rise0chen<rise0chen@163.com>
+Author-email: rise0chen<rise0chen@163.com>
+Description-Content-Type: text/markdown; charset=UTF-8; variant=GFM
+Project-URL: Source Code, https://github.com/lebai-robotics/lebai-sdk.rs
+
+# Lebai SDK
+
+[SDK 在线文档](http://help.lebai.ltd/sdk/)
+
