@@ -17,8 +17,19 @@ imgpoints = []  # 2D points in image plane
 # Load all images
 images = glob.glob('handeye_images/*.jpg')  # Adjust your path
 
+if not images:
+    print("No images found in 'handeye_images/' directory")
+    print("Please ensure you have calibration images with chessboard patterns")
+    exit(1)
+
+gray = None  # Initialize gray variable
+
 for fname in images:
     img = cv2.imread(fname)
+    if img is None:
+        print(f"Could not read image: {fname}")
+        continue
+
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     # Find the chessboard corners
@@ -35,6 +46,12 @@ for fname in images:
         # cv2.waitKey(100)
 
 # cv2.destroyAllWindows()
+
+if not objpoints:
+    print("No chessboard corners found in any images")
+    print("Please ensure your images contain a chessboard pattern")
+    exit(1)
+
 
 # Calibrate camera
 ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
