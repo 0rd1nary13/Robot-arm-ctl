@@ -9,7 +9,6 @@
 2. 同时运行teleop.py操作机器人
 3. 操作结束后查看生成的图表
 
-作者: AI Assistant
 """
 
 import time
@@ -18,7 +17,7 @@ import lebai_sdk
 import json
 import matplotlib.pyplot as plt
 from datetime import datetime
-from pressure_detector import LebaiPressureDetector, PressureThresholds
+from pressure_detector import LebaiPressureDetector, create_voltage_thresholds
 from typing import List, Dict, Optional
 import signal
 import sys
@@ -82,36 +81,18 @@ class PressureMonitor:
     
     def setup_pressure_detector(self, sensitivity: str = "normal") -> None:
         """
-        设置压感检测器
+        设置基于关节电压的压感检测器
         
         Args:
             sensitivity: 敏感度 ("high", "normal", "low")
         """
-        # 针对teleop操作优化的敏感度设置
-        if sensitivity == "high":
-            thresholds = PressureThresholds(
-                position_deviation_threshold=0.015,  # 15mm - teleop操作更敏感
-                velocity_threshold=0.008,            # 8mm/s
-                contact_confidence_threshold=0.75,   # 75% 置信度
-                detection_frequency=20.0             # 20Hz
-            )
-        elif sensitivity == "low":
-            thresholds = PressureThresholds(
-                position_deviation_threshold=0.06,   # 60mm - 大动作操作
-                velocity_threshold=0.025,            # 25mm/s
-                contact_confidence_threshold=0.9,    # 90% 高置信度
-                detection_frequency=10.0             # 10Hz
-            )
-        else:  # normal - 适合teleop操作
-            thresholds = PressureThresholds(
-                position_deviation_threshold=0.03,   # 30mm
-                velocity_threshold=0.015,            # 15mm/s
-                contact_confidence_threshold=0.8,    # 80% 置信度
-                detection_frequency=15.0             # 15Hz
-            )
+        # 使用新的基于电压的检测阈值
+        thresholds = create_voltage_thresholds(sensitivity)
         
         self.pressure_detector = LebaiPressureDetector(self.lebai, thresholds)
-        print(f"🔍 压感检测器设置完成 (敏感度: {sensitivity})")
+        print(f"🔋 基于电压的压感检测器设置完成 (敏感度: {sensitivity})")
+        print(f"   📊 电压下降阈值: {thresholds.voltage_drop_threshold:.1f}V")
+        print(f"   ⚡ 电流峰值阈值: {thresholds.current_spike_threshold:.1f}A")
     
     def start_monitoring(self) -> None:
         """开始后台监控"""
@@ -133,7 +114,8 @@ class PressureMonitor:
             self.monitor_thread.daemon = True
             self.monitor_thread.start()
             
-            print("📡 压感监控已启动 (后台运行)")
+            print("📡 基于电压的压感监控已启动 (后台运行)")
+            print("🔋 监控各关节电压变化，检测碰撞和阻力")
             print("🎮 现在可以运行 teleop.py 开始操作机器人")
             print("🛑 按 Ctrl+C 停止监控并生成报告")
             
@@ -184,13 +166,21 @@ class PressureMonitor:
         self.collision_events.append(collision_data)
         self.session_data['collision_count'] += 1
         
-        # 实时显示碰撞事件
+        # 实时显示碰撞事件 (基于电压检测)
         print(f"\n🚨 [{collision_data['timestamp']}] 检测到碰撞!")
         print(f"   ⏱️  时间: {relative_time:.2f}s")
         print(f"   🔍 方法: {event.detection_method.value}")
         print(f"   🎯 置信度: {event.confidence:.2f}")
-        print(f"   📍 位置: x={event.tcp_position.get('x', 0):.3f}, "
-              f"y={event.tcp_position.get('y', 0):.3f}, z={event.tcp_position.get('z', 0):.3f}")
+        
+        # 显示受影响的关节和电压信息
+        if hasattr(event, 'affected_joints') and event.affected_joints:
+            print(f"   🔧 受影响关节: {event.affected_joints}")
+        
+        if hasattr(event, 'voltage_drops') and event.voltage_drops:
+            max_drop = max(event.voltage_drops)
+            max_joint = event.voltage_drops.index(max_drop)
+            print(f"   🔋 最大电压下降: 关节{max_joint} = {max_drop:.2f}V")
+        
         print("   继续监控中...")
     
     def stop_monitoring(self) -> None:
@@ -349,13 +339,16 @@ class PressureMonitor:
 
 def main():
     """主函数"""
-    print("🤖 压感监控器 - 后台运行版本")
-    print("=" * 50)
+    print("🔋 基于关节电压的压感监控器 - 后台运行版本")
+    print("=" * 60)
     print("📋 使用说明:")
-    print("1. 启动此程序开始后台监控")
-    print("2. 在另一个终端运行 teleop.py 操作机器人")
-    print("3. 操作结束后按 Ctrl+C 停止并查看报告")
-    print("=" * 50)
+    print("1. 启动此程序开始基于电压的后台监控")
+    print("2. 程序会建立各关节的基线电压")
+    print("3. 在另一个终端运行 teleop.py 操作机器人")
+    print("4. 当电机遇到阻力时，电压会下降并被检测到")
+    print("5. 操作结束后按 Ctrl+C 停止并查看报告")
+    print("=" * 60)
+    print("🎯 优势: 直接监控电机电压，比位置偏差检测更准确！")
     
     # 获取机器人IP
     robot_ip = input("请输入机器人IP地址 (默认: 192.168.10.200): ").strip()
