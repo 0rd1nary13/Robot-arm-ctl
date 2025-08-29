@@ -1,10 +1,32 @@
-certifi==2025.8.3
-charset-normalizer==3.4.3
-dynamixel-sdk==3.7.31
-idna==3.10
-lebai_sdk==0.3.5
-numpy==2.0.2
-opencv-python==4.12.0.88
-pyserial==3.5
-requests==2.32.5
-urllib3==2.5.0
+# 核心机器人控制依赖
+lebai_sdk==0.3.5              # 乐白机器人SDK
+dynamixel-sdk==3.7.31         # Dynamixel舵机控制SDK
+
+# 数值计算和数据处理
+numpy==2.0.2                  # 数值计算库
+
+# 计算机视觉
+opencv-python==4.12.0.88      # OpenCV计算机视觉库
+
+# 数据可视化
+matplotlib>=3.5.0             # 图表绘制库
+
+# 网络通信
+requests==2.32.5              # HTTP请求库
+urllib3==2.5.0                # HTTP客户端库
+
+# 串口通信
+pyserial==3.5                 # 串口通信库
+
+# 网络和编码支持
+certifi==2025.8.3             # SSL证书验证
+charset-normalizer==3.4.3     # 字符编码检测和规范化
+idna==3.10                    # 国际化域名支持
+
+# 可选依赖 (ROS相关，仅在使用press_detect/目录下的ROS版本时需要)
+# rospy                       # ROS Python客户端库
+# sensor_msgs                 # ROS传感器消息类型
+# geometry_msgs               # ROS几何消息类型
+# std_msgs                    # ROS标准消息类型
+# std_srvs                    # ROS标准服务类型
+# tf                          # ROS坐标变换库
